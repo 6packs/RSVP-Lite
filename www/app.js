@@ -34,9 +34,6 @@ async function route() {
   const [, screen, id] = location.hash.split('/')
   leave = (await (screen === 'read' ? reader(Number(id)) : screen === 'settings' ? settingsScreen() : library())) ?? leave
 }
-addEventListener('hashchange', route)
-applyTheme()
-route()
 
 // --- Library -----------------------------------------------------------
 
@@ -172,7 +169,7 @@ async function reader(id) {
   }
 
   // The surrounding text, a few hundred words either side, one tap per word to jump.
-  let shown = { from: 0, to: 0, para: -1 }
+  let shown = { from: 0, to: 0 }
   function showText() {
     if (!settings.textOpen) return
     const i = player.index
@@ -187,14 +184,17 @@ async function reader(id) {
         html += `<span data-i="${j}">${esc(words[j].text)}</span> `
       }
       textView.innerHTML = html + '</p>'
-      shown = { from, to, para: -1 }
+      shown = { from, to }
     }
     textView.querySelector('.now')?.classList.remove('now')
     const span = textView.querySelector(`[data-i="${i}"]`)
     span.classList.add('now')
-    // Follow along a paragraph at a time, rather than jittering every word.
-    if (!player.playing || words[i].para !== shown.para) span.scrollIntoView({ block: 'center' })
-    shown.para = words[i].para
+    // Keep the word in the upper part of the panel: once reading carries it
+    // past two-thirds of the way down (or it's above the top), glide it back
+    // to a third. Scrolling away while paused is left alone until it moves.
+    const { scrollTop, clientHeight } = textView
+    if (span.offsetTop < scrollTop || span.offsetTop > scrollTop + clientHeight * (2 / 3))
+      textView.scrollTo({ top: span.offsetTop - clientHeight / 3, behavior: player.playing ? 'smooth' : 'auto' })
   }
 
   let lock = null
@@ -234,7 +234,7 @@ async function reader(id) {
     save({ textOpen: !settings.textOpen })
     e.target.setAttribute('aria-pressed', settings.textOpen)
     $('.reader').classList.toggle('with-text', settings.textOpen)
-    shown = { from: 0, to: 0, para: -1 }
+    shown = { from: 0, to: 0 }
     update()
   }
 
@@ -328,6 +328,7 @@ function settingsScreen() {
       </label>
 
       <h2>Pacing</h2>
+      <p class="hint touch-only">Hold a slider for a moment to move it, so scrolling past one never changes it.</p>
       <label>
         <span class="ends"><span>Comprehension</span><span>Speed</span></span>
         <input name="preset" type="range" min="0" max="${PRESETS.length - 1}" aria-label="Comprehension versus speed">
@@ -402,5 +403,56 @@ function settingsScreen() {
     if (pacing || useWpm) refresh()
   }
   form.onsubmit = (e) => e.preventDefault()
+  holdToSlide(form)
   refresh()
 }
+
+/** On a touch screen, a slider in a scrolling page is easy to nudge by
+ * accident. So there (see style.css) sliders ignore touches of their own,
+ * and a press held still for a moment picks one up and slides it instead.
+ * A swipe that starts on a slider just scrolls the page. */
+function holdToSlide(root, holdMs = 250) {
+  root.addEventListener('pointerdown', (down) => {
+    if (down.pointerType !== 'touch') return
+    const range = [...root.querySelectorAll('input[type=range]')].find((r) => {
+      const box = r.getBoundingClientRect()
+      return down.clientX >= box.left && down.clientX <= box.right && Math.abs(down.clientY - (box.top + box.height / 2)) < 24
+    })
+    if (!range) return
+
+    let held = false
+    const slide = (e) => {
+      const box = range.getBoundingClientRect()
+      const at = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width))
+      const before = range.value
+      range.value = Number(range.min) + at * (range.max - range.min) // the browser snaps it to the step
+      if (range.value !== before) range.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    const timer = setTimeout(() => {
+      held = true
+      range.classList.add('held')
+      navigator.vibrate?.(10)
+      slide(down)
+    }, holdMs)
+    const move = (e) => {
+      if (held) slide(e)
+      else if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) > 8) end() // it's a scroll
+    }
+    const end = () => {
+      clearTimeout(timer)
+      range.classList.remove('held')
+      removeEventListener('pointermove', move)
+      removeEventListener('pointerup', end)
+      removeEventListener('pointercancel', end)
+    }
+    addEventListener('pointermove', move)
+    addEventListener('pointerup', end)
+    addEventListener('pointercancel', end)
+  })
+}
+
+// --- Start, once everything above is defined --------------------------
+
+addEventListener('hashchange', route)
+applyTheme()
+route()
