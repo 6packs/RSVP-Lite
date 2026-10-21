@@ -1,0 +1,322 @@
+/* Two palettes and a handful of layouts. */
+
+:root {
+  --bg: #16181d;
+  --raised: #1e2128;
+  --line: #32373f;
+  --text: #e6e8ec;
+  --dim: #8c93a0;
+  --accent: #ff5a5f;
+  --guide: #3a404a;
+  --gap: 1rem;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #fafafa;
+  --raised: #fff;
+  --line: #dcdfe4;
+  --text: #16181d;
+  --dim: #6b7280;
+  --accent: #e0393e;
+  --guide: #c7cbd1;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, sans-serif;
+  accent-color: var(--accent);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The Android shell sets --safe-area-inset-*; browsers have env(). */
+#app {
+  min-height: 100dvh;
+  padding: var(--safe-area-inset-top, env(safe-area-inset-top)) var(--safe-area-inset-right, env(safe-area-inset-right))
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom)) var(--safe-area-inset-left, env(safe-area-inset-left));
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+h1 {
+  font-size: 1.25rem;
+}
+h2 {
+  font-size: 1.15rem;
+}
+h3 {
+  font-size: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+.button,
+select,
+input[type='number'] {
+  font: inherit;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+.quiet {
+  background: none;
+  border: none;
+  color: var(--dim);
+  padding: 0.4rem;
+}
+.quiet[aria-pressed='true'] {
+  color: var(--accent);
+}
+.hint,
+small,
+.status {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+/* Every-Layout's stack: siblings spaced, nothing else touched. */
+.stack > * + * {
+  margin-block-start: var(--gap);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem var(--gap);
+}
+.bar h1 {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* --- Library --- */
+
+.status,
+.empty {
+  margin: 0;
+  padding: 0 var(--gap);
+}
+.books {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--gap);
+}
+.books li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.books a {
+  flex: 1;
+  padding: 0.9rem 0;
+}
+
+/* --- Reader --- */
+
+.reader {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
+}
+.stage {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  font: 500 var(--size) / 1 var(--font);
+  user-select: none;
+}
+/* Tick marks above and below the focus point, so the eye knows where to rest. */
+.stage::before,
+.stage::after {
+  content: '';
+  position: absolute;
+  left: 42%;
+  height: 0.25em;
+  border-left: 2px solid var(--guide);
+}
+.stage::before {
+  bottom: calc(50% + 0.75em);
+}
+.stage::after {
+  top: calc(50% + 0.75em);
+}
+.word {
+  position: absolute;
+  top: 50%;
+  white-space: pre;
+}
+.word b {
+  font-weight: inherit;
+  color: var(--orp);
+}
+
+.text {
+  display: none;
+  overflow-y: auto;
+  padding: 0 var(--gap);
+  border-top: 1px solid var(--line);
+  font-family: var(--font);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+.with-text .stage {
+  flex: 0 0 35%;
+}
+.with-text .text {
+  display: block;
+  flex: 1;
+}
+.text span {
+  cursor: pointer;
+}
+.text .now {
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 0.2rem;
+}
+
+.controls {
+  padding: 0.5rem var(--gap) 1rem;
+}
+.scrub {
+  width: 100%;
+}
+.where {
+  flex: 1;
+  color: var(--dim);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.speed {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.speed output {
+  min-width: 5.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.play {
+  min-width: 5rem;
+}
+
+/* A phone held sideways: just the word, as large as the screen allows. */
+@media (orientation: landscape) and (pointer: coarse) {
+  .reader > :not(.stage) {
+    display: none !important;
+  }
+  .reader .stage {
+    flex: 1;
+    font-size: max(var(--size), min(40vh, 17vw));
+  }
+}
+
+/* --- Settings --- */
+
+.settings {
+  max-width: 32rem;
+  padding: 0 var(--gap) 2rem;
+}
+.settings label {
+  display: block;
+}
+.settings label > :is(select, input:not([type='checkbox'])) {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+.settings label.inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.settings label.inline input[type='color'] {
+  width: 3rem;
+  margin: 0;
+}
+.settings output {
+  float: right;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+legend {
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+.ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+.presets .on {
+  color: var(--text);
+  font-weight: 600;
+}
+.card,
+.preview {
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+.card button {
+  margin-top: 0.5rem;
+  display: block;
+}
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+}
+.preview span {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}

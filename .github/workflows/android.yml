@@ -1,0 +1,52 @@
+# Test on every push; on main, also build the APK and replace the
+# "android-latest" release with it:
+#   https://github.com/<owner>/<repo>/releases/tag/android-latest
+name: Android
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write # to replace the release
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - if: github.ref == 'refs/heads/main'
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - if: github.ref == 'refs/heads/main'
+        run: npm run android
+
+      - if: github.ref == 'refs/heads/main'
+        name: Replace the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk rsvp-lite.apk
+          gh release delete android-latest --cleanup-tag --yes || true
+          gh release create android-latest rsvp-lite.apk \
+            --target "$GITHUB_SHA" \
+            --title "RSVP Lite (Android, latest)" \
+            --notes "Built from ${GITHUB_SHA::7}. On your phone: download rsvp-lite.apk below and open it to install or update."

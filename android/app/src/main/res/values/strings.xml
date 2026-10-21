@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RSVP Lite</string>
+    <string name="title_activity_main">RSVP Lite</string>
+    <string name="package_name">io.github.sixpacks.rsvplite</string>
+    <string name="custom_url_scheme">io.github.sixpacks.rsvplite</string>
+</resources>
