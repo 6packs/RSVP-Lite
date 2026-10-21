@@ -8,6 +8,15 @@ name: Android
 on:
   push:
   workflow_dispatch:
+    inputs:
+      one_off_key:
+        description: >-
+          Sign with a throwaway key made for this one build, for when the
+          secrets aren't set up yet. Nobody keeps the key, so nobody can sign
+          an update for it — and installing a real-key build later needs one
+          uninstall.
+        type: boolean
+        default: false
 
 permissions: {} # each job asks for exactly what it needs
 
@@ -38,15 +47,23 @@ jobs:
       - if: github.ref == 'refs/heads/main'
         name: Build the signed release APK
         env:
+          ONE_OFF: ${{ inputs.one_off_key }}
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+          trap 'rm -f android/app/release.keystore' EXIT
+          if [ "$ONE_OFF" = true ]; then
+            ANDROID_KEYSTORE_PASSWORD=$(openssl rand -hex 32)
+            keytool -genkeypair -keystore android/app/release.keystore -storetype PKCS12 -alias release \
+              -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=RSVP one-off build" \
+              -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEYSTORE_PASSWORD"
+            export ANDROID_KEYSTORE_PASSWORD
+          elif [ -z "$KEYSTORE" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
             echo "::error::Add the ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD secrets — see the README."
             exit 1
+          else
+            echo "$KEYSTORE" | base64 -d > android/app/release.keystore
           fi
-          echo "$KEYSTORE" | base64 -d > android/app/release.keystore
-          trap 'rm -f android/app/release.keystore' EXIT
           npx cap sync android
           (cd android && ./gradlew --no-daemon assembleRelease -PversionCode="$GITHUB_RUN_NUMBER")
           cp android/app/build/outputs/apk/release/app-release.apk rsvp-lite.apk
@@ -77,6 +94,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          KEY_NOTE: ${{ inputs.one_off_key && 'Signed with a one-off key that was thrown away after this build. A later build signed with the permanent key needs one uninstall first.' || 'Signed with the permanent release key.' }}
         run: |
           gh release delete android-latest --cleanup-tag --yes || true
           gh release create android-latest rsvp-lite.apk rsvp-lite.apk.sha256 \
@@ -85,6 +103,8 @@ jobs:
             --notes "Built from ${GITHUB_SHA::7} by [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).
 
           On your phone: download rsvp-lite.apk below and open it to install or update.
+
+          $KEY_NOTE
 
           SHA-256: \`$(cut -d' ' -f1 rsvp-lite.apk.sha256)\`
 
