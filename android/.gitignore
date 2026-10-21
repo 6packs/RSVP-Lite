@@ -55,8 +55,6 @@ captures/
 # Keystore files — never commit a signing key.
 *.jks
 *.keystore
-# The shared debug key is committed on purpose; see app/build.gradle.
-!app/debug-shared.keystore
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild

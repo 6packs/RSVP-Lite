@@ -37,8 +37,12 @@ export const stripMarkdown = (md) =>
 
 // --- EPUB: a zip of XHTML chapters, listed in reading order by the OPF ---
 
-/** A minimal zip reader: stored and deflated entries, which is all EPUBs use. */
-export function unzip(data) {
+/** No real book unpacks to anything like this; a zip bomb would. */
+const UNPACKED_LIMIT = 200 * 2 ** 20
+
+/** A minimal zip reader: stored and deflated entries, which is all EPUBs use.
+ * Stops once everything read so far unpacks past `limit` bytes. */
+export function unzip(data, limit = UNPACKED_LIMIT) {
   const view = new DataView(data)
   const bytes = new Uint8Array(data)
   let end = data.byteLength - 22
@@ -56,6 +60,16 @@ export function unzip(data) {
     p += 46 + nameLength + view.getUint16(p + 30, true) + view.getUint16(p + 32, true)
   }
 
+  let unpacked = 0
+  const capped = () =>
+    new TransformStream({
+      transform(chunk, out) {
+        unpacked += chunk.length
+        if (unpacked > limit) throw new Error('This file unpacks to far more than any book would, so it wasn’t opened.')
+        out.enqueue(chunk)
+      },
+    })
+
   /** The named file's text, or null if there's no such file. */
   return async (name) => {
     const entry = entries.get(name)
@@ -63,7 +77,7 @@ export function unzip(data) {
     const start = entry.offset + 30 + view.getUint16(entry.offset + 26, true) + view.getUint16(entry.offset + 28, true)
     const raw = new Blob([bytes.subarray(start, start + entry.size)])
     const stream = entry.method === 8 ? raw.stream().pipeThrough(new DecompressionStream('deflate-raw')) : raw.stream()
-    return new Response(stream).text()
+    return new Response(stream.pipeThrough(capped())).text()
   }
 }
 
@@ -114,7 +128,7 @@ async function readPdf(data) {
   pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href
   let pdf
   try {
-    pdf = await pdfjs.getDocument({ data }).promise
+    pdf = await pdfjs.getDocument({ data, isEvalSupported: false }).promise
   } catch (e) {
     throw new Error(e.name === 'PasswordException' ? 'This PDF is password-protected.' : 'This PDF couldn’t be opened.')
   }

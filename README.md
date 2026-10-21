@@ -50,8 +50,34 @@ the native bridge, and Back is handled by a few lines of Java in
 ```sh
 npm start      # serve www/ on http://localhost:8080 — edit, reload, done
 npm test       # node --test: timing rules, presets, player, unzip
-npm run android  # build the APK (needs the Android SDK)
+npm run android  # a debug APK for your own device (needs the Android SDK)
 ```
+
+## Releases and signing
+
+Releases are signed with a private key that exists only on your own computer
+and in two encrypted repository secrets. To make the key, run this once:
+
+```sh
+keytool -genkeypair -keystore rsvp-release.keystore -storetype PKCS12 \
+  -alias release -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=RSVP"
+base64 < rsvp-release.keystore | tr -d '\n' > keystore.b64   # the secret's value
+```
+
+Then add these under the repo's Settings → Secrets and variables → Actions:
+
+- `ANDROID_KEYSTORE_BASE64`: the contents of `keystore.b64`
+- `ANDROID_KEYSTORE_PASSWORD`: the password you chose
+
+Keep `rsvp-release.keystore` and its password somewhere safe, like a password
+manager, and delete `keystore.b64`. Updates must be signed with the same key,
+so losing it means uninstalling and starting over.
+
+The build runs in a job that can only read the repo. A separate job uploads
+the APK with its SHA-256 and a
+[build attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations),
+so you can confirm a download came from this repo's own build:
+`gh attestation verify rsvp-lite.apk -R 6packs/RSVP-Lite`.
 
 ## Credits
 

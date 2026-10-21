@@ -6,7 +6,7 @@
   "type": "module",
   "description": "A one-word-at-a-time reader. Plain HTML, CSS and JS; Capacitor only wraps it for Android.",
   "scripts": {
-    "start": "python3 -m http.server --directory www 8080",
+    "start": "python3 -m http.server --bind 127.0.0.1 --directory www 8080",
     "test": "node --test",
     "android": "cap sync android && cd android && ./gradlew assembleDebug"
   },

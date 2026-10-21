@@ -144,4 +144,10 @@ describe('unzip', () => {
     assert.match(await read('META-INF/container.xml'), /rootfile/)
     assert.equal(await read('no/such/file'), null)
   })
+  it('refuses to unpack past its limit', async () => {
+    const data = await readFile(new URL('fixtures/austen-pride-and-prejudice.epub', import.meta.url))
+    const read = unzip(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength), 1000)
+    assert.match(await read('META-INF/container.xml'), /rootfile/) // 252 bytes: fine
+    await assert.rejects(read('OEBPS/8021792140027773854_1342-h-0.htm.html'), /far more/) // 54 kB: not
+  })
 })
