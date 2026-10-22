@@ -7,6 +7,7 @@ name: Android
 
 on:
   push:
+    paths-ignore: ['**.md', 'docs/**'] # docs alone don't need a build
   workflow_dispatch:
     inputs:
       one_off_key:
