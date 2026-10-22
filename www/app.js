@@ -1,8 +1,13 @@
+import { BASELINE } from './baseline.js'
 import { ACCEPT, readBook } from './books.js'
-import { CLASSIC, DEFAULT_PRESET, PRESETS, Player, delay, orp, presetOf, tokenize } from './rsvp.js'
+import { CLASSIC, DEFAULT_PRESET, PRESETS, Player, delay, orp, presetOf, readingSpeed, tokenize } from './rsvp.js'
 import { books, save, settings } from './store.js'
 
 const app = document.getElementById('app')
+/** The real pace at `wpm`, pauses and all, measured on a sample of Pride and
+ * Prejudice so the figure means the same whichever book is open. */
+const PRIDE = tokenize(BASELINE)
+const realSpeed = (wpm, pacing = settings.pacing) => readingSpeed(PRIDE, wpm, pacing)
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 /** Calls into the Android shell; does nothing in a plain browser. */
@@ -205,7 +210,10 @@ async function reader(id) {
     scrub.value = player.index
     play.textContent = player.playing ? 'Pause' : 'Play'
     where.textContent = `${(player.index + 1).toLocaleString()} / ${words.length.toLocaleString()}`
-    wpm.textContent = `${player.wpm} wpm`
+    if (wpm.dataset.wpm !== String(player.wpm)) {
+      wpm.dataset.wpm = player.wpm
+      wpm.innerHTML = `${player.wpm} wpm<small>≈ ${realSpeed(player.wpm)} real</small>`
+    }
 
     if (player.playing && !lock) navigator.wakeLock?.request('screen').then((l) => (lock = l), () => {})
     if (!player.playing && lock) {
@@ -323,11 +331,12 @@ function settingsScreen() {
       <label class="inline"><input name="customOrp" type="checkbox"${settings.orpColor ? ' checked' : ''}> Own color for the focus letter
         <input name="orpColor" type="color" value="${settings.orpColor || '#ff5a5f'}"${settings.orpColor ? '' : ' hidden'}>
       </label>
-      <label>Speed for new books (wpm)
+      <label>Speed for new books (wpm) <output data-for="real"></output>
         <input name="wpm" type="number" min="50" max="1500" step="25" value="${settings.wpm}">
       </label>
 
       <h2>Pacing</h2>
+      <p class="hint">The speed dial sets the pace of a plain word. Pauses for punctuation, long words, quotes and names make the real pace slower, so it’s shown alongside as “≈ N real”: words a minute on a sample of <i>Pride and Prejudice</i>.</p>
       <p class="hint touch-only">Hold a slider for a moment to move it, so scrolling past one never changes it.</p>
       <label>
         <span class="ends"><span>Comprehension</span><span>Speed</span></span>
@@ -346,7 +355,7 @@ function settingsScreen() {
             </label>`).join('')}
         </fieldset>`).join('')}
 
-      <div><h3>Preview <span class="hint">at <span data-for="wpm"></span> wpm</span></h3><p class="preview"></p></div>
+      <div><h3>Preview <span class="hint">at <span data-for="wpm"></span> wpm, ≈ <span data-for="real"></span> real</span></h3><p class="preview"></p></div>
       <div class="row">
         <button type="button" data-pacing="default">Reset to defaults</button>
         <button type="button" data-pacing="classic">Original timing</button>
@@ -369,10 +378,12 @@ function settingsScreen() {
       }
     form.querySelector('[data-for="size"]').textContent = `${settings.size}px`
     form.querySelector('[data-for="wpm"]').textContent = settings.wpm
+    const real = realSpeed(settings.wpm, p)
+    form.querySelectorAll('[data-for="real"]').forEach((el) => (el.textContent = el.matches('output') ? `≈ ${real} real` : real))
 
     const preset = PRESETS[at]
     form.querySelector('.card').innerHTML = preset
-      ? `<b>${preset.name}.</b> ${preset.summary} Suggested speed: ${preset.wpm} wpm.
+      ? `<b>${preset.name}.</b> ${preset.summary} Suggested speed: ${preset.wpm} wpm (≈ ${realSpeed(preset.wpm, p)} real).
          ${settings.wpm === preset.wpm ? '' : `<button type="button" data-use-wpm="${preset.wpm}">Use it for new books</button>`}`
       : '<b>Custom.</b> Fine-tuned below. Pick a point on the slider to go back to a preset.'
     form.querySelector('.preview').innerHTML = SAMPLE.map(

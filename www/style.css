@@ -234,7 +234,11 @@ small,
 .speed output {
   min-width: 5.5em;
   text-align: center;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+}
+.speed output small {
+  display: block;
 }
 .play {
   min-width: 5rem;

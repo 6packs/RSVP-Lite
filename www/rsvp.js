@@ -133,6 +133,11 @@ export function delay(words, i, wpm, p = CLASSIC) {
   return Math.max(20, ms)
 }
 
+/** Words a minute actually read at `wpm` once the pauses are counted. The
+ * dial sets the pace of a plain word; every rule above adds time to others. */
+export const readingSpeed = (words, wpm, pacing = CLASSIC) =>
+  Math.round(words.length / (words.reduce((ms, _, i) => ms + delay(words, i, wpm, pacing), 0) / 60000))
+
 /** Plays words one at a time. Each word's time counts from when the last
  * one was *due*, not from when its timer happened to fire, so a late
  * timer never drags the whole reading behind the WPM. */

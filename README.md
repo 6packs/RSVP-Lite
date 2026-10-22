@@ -33,6 +33,9 @@ browser, since the app isn't from the Play Store.
   Skim. Every rule can be fine-tuned, and a live preview shows the
   milliseconds each word gets. [docs/research.md](docs/research.md) has the
   evidence behind the presets.
+- **Shows two speeds:** the dial, and the real pace once pauses are counted,
+  for example *450 wpm ≈ 296 real*. The real pace is measured on a built-in
+  sample of *Pride and Prejudice*, so it means the same for every book.
 - **Fills the screen sideways.** Turn your phone to landscape and only the
   word is left, as big as it fits, with the system bars hidden.
 - **Shows the text when you want it.** "Text" shows the surrounding

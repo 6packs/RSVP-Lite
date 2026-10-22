@@ -5,6 +5,22 @@ What changed in RSVP Lite and why, newest first. RSVP Lite descends from
 [6packs/RSVP-Plus](https://github.com/6packs/RSVP-Plus); the early history is
 in RSVP-Plus's [CHANGELOG](https://github.com/6packs/RSVP-Plus/blob/main/CHANGELOG.md).
 
+## 2026-10-22
+
+### Two speeds: the dial and the real pace
+
+- **Both values are shown together.** The speed now reads as two values,
+  such as **450 wpm ≈ 296 real**, in the reader, next to "Speed for new
+  books", on each preset's suggestion and on the preview.
+- **What the two values mean.** The dial sets the pace of a plain word.
+  Pauses for punctuation, long words, quotes and names make the real pace
+  slower; at 450 wpm on Careful, real reading is about 300 words a minute.
+- **How the real pace is measured.** It comes from a built-in sample of
+  *Pride and Prejudice*: every 59th paragraph, about 2,000 words. That
+  sample runs within 2% of the whole novel under every preset, so the figure
+  means the same whichever book is open. It's recalculated instantly with
+  your exact settings, including fine-tuned ones.
+
 ## 2026-10-21
 
 ### Text panel follows the word; touch sliders need a hold (`4f6f15b`)

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it, mock } from 'node:test'
+import { BASELINE } from '../www/baseline.js'
 import { unzip } from '../www/books.js'
-import { CLASSIC, DEFAULT_PRESET, PRESETS, Player, closesQuote, delay, opensQuote, orp, presetOf, tokenize } from '../www/rsvp.js'
+import { CLASSIC, DEFAULT_PRESET, PRESETS, Player, closesQuote, delay, opensQuote, orp, presetOf, readingSpeed, tokenize } from '../www/rsvp.js'
 
 // Mid-paragraph timing: the word followed by another, so no paragraph pause.
 const at = (word, pacing = {}, prev = 'the', wpm = 300) => {
@@ -149,5 +150,19 @@ describe('unzip', () => {
     const read = unzip(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength), 1000)
     assert.match(await read('META-INF/container.xml'), /rootfile/) // 252 bytes: fine
     await assert.rejects(read('OEBPS/8021792140027773854_1342-h-0.htm.html'), /far more/) // 54 kB: not
+  })
+})
+
+describe('reading speed', () => {
+  it('is the dial speed for plain words with no pauses', () => {
+    assert.equal(readingSpeed(tokenize('the cat sat on a mat and ran off'), 450, { ...CLASSIC, paragraphPauseMs: 0 }), 450)
+  })
+  it('matches the whole novel on the Pride and Prejudice sample', () => {
+    // Measured on all 122,000 words of the novel at 450 wpm: Original 341, Careful 301, Skim 453.
+    const pride = tokenize(BASELINE)
+    const near = (actual, expected) => assert(Math.abs(actual - expected) / expected < 0.03, `${actual} vs ${expected}`)
+    near(readingSpeed(pride, 450, CLASSIC), 341)
+    near(readingSpeed(pride, 450, PRESETS[1].pacing), 301)
+    near(readingSpeed(pride, 450, PRESETS[4].pacing), 453)
   })
 })
